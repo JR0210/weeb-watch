@@ -18,11 +18,22 @@ export default function Home() {
         autoPlay
       />
 
-      <div className="z-30">
+      <div className="z-30 space-y-12">
         <h1 className="text-9xl text-white font-extrabold">
           Weeb<span className="text-[#E63946]">.</span>watch
         </h1>
-        <input type="text" placeholder="Search..." />
+        <div>
+          <label htmlFor="search" className="sr-only">
+            Search
+          </label>
+          <input
+            id="search"
+            name="search"
+            type="text"
+            placeholder="Enter an anime title..."
+            className="block w-full rounded-md border-0 p-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+          />
+        </div>
       </div>
 
       {/* SVG Overlay */}
