@@ -18,7 +18,7 @@ export default function Home() {
         autoPlay
       />
 
-      <div className="z-30 space-y-12">
+      <div className="z-30 space-y-12 m-auto">
         <h1 className="text-9xl text-white font-extrabold">
           Weeb<span className="text-[#E63946]">.</span>watch
         </h1>
