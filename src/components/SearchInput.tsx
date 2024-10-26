@@ -1,11 +1,17 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
-import useDebounceFetch from "../hooks/useDebounceFetch";
-import { type ApiResponse } from "../types/global";
 import Image from "next/image";
 import { Virtuoso } from "react-virtuoso";
+
+import useDebounceFetch from "../hooks/useDebounceFetch";
+
+import {
+  type ApiResponse,
+  type AnimeData,
+  type Pagination,
+} from "../types/global";
 
 type FetchProps = {
   data: ApiResponse;
@@ -14,7 +20,7 @@ type FetchProps = {
 };
 
 const SearchDropdown = ({ children }: { children: React.ReactNode }) => (
-  <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+  <ul className="absolute z-10 mt-1 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
     {children}
   </ul>
 );
@@ -23,6 +29,8 @@ export default function AnimeSearch() {
   const [query, setQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [animeData, setAnimeData] = useState<AnimeData[]>([]);
+  const [pageData, setPageData] = useState<Pagination>();
 
   const url = query
     ? `/api/anime-search?q=${encodeURIComponent(query)}&sfw`
@@ -36,12 +44,35 @@ export default function AnimeSearch() {
     validate,
   });
 
-  const responseData = data?.data || [];
+  useEffect(() => {
+    if (data) {
+      console.log({ data });
+      setAnimeData(data.data);
+      setPageData(data.pagination);
+    }
+  }, [data]);
+
+  const loadMore = async () => {
+    if (pageData?.has_next_page) {
+      try {
+        const res = await fetch(
+          `/api/anime-search?q=${encodeURIComponent(query)}&page=${
+            pageData.current_page + 1
+          }&sfw`
+        );
+        const json = await res.json();
+        setAnimeData([...animeData, ...json.data]);
+        setPageData(json.pagination);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!isDirty) setIsDirty(true);
-    if (isDirty && !e.target.value) setIsDirty(false);
-    setQuery(e.target.value);
+    const inputValue = e.target.value;
+    setIsDirty(inputValue !== "");
+    setQuery(inputValue);
   };
 
   const renderResults = () => {
@@ -51,30 +82,44 @@ export default function AnimeSearch() {
       return (
         <li className="text-slate-700 py-2 px-4">Error loading results</li>
       );
-    if (responseData.length === 0)
+    if (animeData.length === 0)
       return <li className="text-slate-700 py-2 px-4">No results found</li>;
 
-    return responseData.map((item) => (
-      <li
-        key={item.mal_id}
-        className="group relative cursor-pointer select-none py-2 px-4 text-slate-700 hover:bg-indigo-600 hover:text-white"
-      >
-        <Link href={`/anime/${item.mal_id}`}>
-          <div className="flex flex-row space-x-2">
-            <Image
-              src={item.images.jpg.image_url}
-              alt={item.title}
-              height={30}
-              width={30}
-            />
-            <div className="flex flex-grow  items-center justify-between">
-              <span>{item.title}</span>
-              <span className="hidden group-hover:block">View Details</span>
-            </div>
-          </div>
-        </Link>
-      </li>
-    ));
+    return (
+      <Virtuoso
+        data={animeData}
+        endReached={loadMore}
+        style={{ height: "15rem" }}
+        increaseViewportBy={12}
+        fixedItemHeight={64}
+        itemContent={(index) => {
+          const item = animeData[index];
+          return (
+            <li
+              key={item.mal_id}
+              className="group h-16 relative cursor-pointer select-none py-2 px-4 text-slate-700 hover:bg-indigo-600 hover:text-white"
+            >
+              <Link className="w-full h-full" href={`/anime/${item.mal_id}`}>
+                <div className="grid grid-cols-2 w-full h-full gap-2">
+                  <Image
+                    src={item.images.jpg.image_url}
+                    alt={item.title}
+                    height={30}
+                    width={30}
+                  />
+                  <div className="flex flex-grow  items-center justify-between">
+                    <span>{item.title}</span>
+                    <span className="hidden group-hover:block">
+                      View Details
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            </li>
+          );
+        }}
+      />
+    );
   };
 
   return (
