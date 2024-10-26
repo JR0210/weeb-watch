@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Virtuoso } from "react-virtuoso";
+import { Input } from "@headlessui/react";
 
 import useDebounceFetch from "../hooks/useDebounceFetch";
 
@@ -99,8 +100,8 @@ export default function AnimeSearch() {
               key={item.mal_id}
               className="group h-16 relative cursor-pointer select-none py-2 px-4 text-slate-700 hover:bg-indigo-600 hover:text-white"
             >
-              <Link className="w-full h-full" href={`/anime/${item.mal_id}`}>
-                <div className="grid grid-cols-2 w-full h-full gap-2">
+              <Link href={`/anime/${item.mal_id}`}>
+                <div className="grid grid-cols-search-input w-full h-full gap-2 items-center">
                   <Image
                     src={item.images.jpg.image_url}
                     alt={item.title}
@@ -130,7 +131,7 @@ export default function AnimeSearch() {
       <div className="mt-2">
         {/* Wrap input and dropdown in a relative container */}
         <div className="relative">
-          <input
+          <Input
             id="search"
             name="search"
             type="text"
