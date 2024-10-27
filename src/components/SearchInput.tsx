@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Virtuoso } from "react-virtuoso";
 import { Input } from "@headlessui/react";
+import { ArrowPathIcon } from "@heroicons/react/24/outline";
 
 import useDebounceFetch from "../hooks/useDebounceFetch";
 
@@ -28,6 +29,7 @@ const SearchDropdown = ({ children }: { children: React.ReactNode }) => (
 
 export default function AnimeSearch() {
   const [query, setQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [animeData, setAnimeData] = useState<AnimeData[]>([]);
@@ -54,7 +56,12 @@ export default function AnimeSearch() {
   }, [data]);
 
   const loadMore = async () => {
-    if (pageData?.has_next_page) {
+    if (pageData?.has_next_page && !isLoading) {
+      setIsLoading((prev) => {
+        if (prev) return prev;
+        return true;
+      });
+
       try {
         const res = await fetch(
           `/api/anime-search?q=${encodeURIComponent(query)}&page=${
@@ -62,10 +69,12 @@ export default function AnimeSearch() {
           }&sfw`
         );
         const json = await res.json();
-        setAnimeData([...animeData, ...json.data]);
+        setAnimeData((prevAnimeData) => [...prevAnimeData, ...json.data]);
         setPageData(json.pagination);
       } catch (error) {
         console.error(error);
+      } finally {
+        setIsLoading(false);
       }
     }
   };
@@ -131,25 +140,31 @@ export default function AnimeSearch() {
       <div className="mt-2">
         {/* Wrap input and dropdown in a relative container */}
         <div className="relative">
-          <Input
-            id="search"
-            name="search"
-            type="text"
-            placeholder="Enter an anime title... (min 3 characters)"
-            className={`block w-full rounded-md p-4 shadow-sm sm:text-sm sm:leading-6 ${
-              isDirty && !validate()
-                ? "border border-red-300 text-red-900 placeholder-red-300 focus:outline-none focus:ring-red-500 focus:border-red-500"
-                : "border border-gray-300 text-slate-700 placeholder-gray-400 focus:border-indigo-600 focus:ring-indigo-600"
-            }`}
-            value={query}
-            onChange={handleInputChange}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            aria-invalid={isDirty && !validate()}
-            aria-describedby={
-              isDirty && !validate() ? "search-error" : undefined
-            }
-          />
+          <div className="relative">
+            <Input
+              id="search"
+              name="search"
+              type="text"
+              autoComplete="off"
+              placeholder="Enter an anime title... (min 3 characters)"
+              className={`block w-full rounded-md p-4 shadow-sm sm:text-sm sm:leading-6 ${
+                isDirty && !validate()
+                  ? "border border-red-300 text-red-900 placeholder-red-300 focus:outline-none focus:ring-red-500 focus:border-red-500"
+                  : "border border-gray-300 text-slate-700 placeholder-gray-400 focus:border-indigo-600 focus:ring-indigo-600"
+              }`}
+              value={query}
+              onChange={handleInputChange}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              aria-invalid={isDirty && !validate()}
+              aria-describedby={
+                isDirty && !validate() ? "search-error" : undefined
+              }
+            />
+            {isLoading && (
+              <ArrowPathIcon className="absolute top-1/3 right-2 animate-spin flex items-center h-5 w-5 text-slate-500" />
+            )}
+          </div>
           {query.length >= 3 && (
             <SearchDropdown>{renderResults()}</SearchDropdown>
           )}
