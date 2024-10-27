@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { Virtuoso } from "react-virtuoso";
+import React, { useState, useCallback, useEffect, useRef } from "react";
+import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 import { Input } from "@headlessui/react";
 import { ArrowPathIcon } from "@heroicons/react/24/outline";
 
+import SearchOption from "./SearchOption";
 import useDebounceFetch from "../hooks/useDebounceFetch";
 
 import {
@@ -28,10 +27,13 @@ const SearchDropdown = ({ children }: { children: React.ReactNode }) => (
 );
 
 export default function AnimeSearch() {
-  const [query, setQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
-  const [isDirty, setIsDirty] = useState(false);
+  const virtuosoRef = useRef(null);
+
+  const [query, setQuery] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isFocused, setIsFocused] = useState<boolean>(false);
+  const [isDirty, setIsDirty] = useState<boolean>(false);
+  const [scrollPosition, setScrollPosition] = useState<number>(0);
   const [animeData, setAnimeData] = useState<AnimeData[]>([]);
   const [pageData, setPageData] = useState<Pagination>();
 
@@ -47,12 +49,27 @@ export default function AnimeSearch() {
     validate,
   });
 
+  const handleScrollPositionChange = (scrollTop: number) => {
+    setScrollPosition(scrollTop);
+  };
+
   useEffect(() => {
     if (data) {
       setAnimeData(data.data);
       setPageData(data.pagination);
     }
   }, [data]);
+
+  useEffect(() => {
+    const shouldScroll =
+      isFocused && animeData.length > 0 && scrollPosition !== 0;
+    if (virtuosoRef.current && shouldScroll) {
+      const virtuoso: VirtuosoHandle = virtuosoRef.current;
+      virtuoso.scrollTo({
+        top: scrollPosition,
+      });
+    }
+  }, [isFocused]);
 
   const loadMore = async () => {
     if (pageData?.has_next_page && !isLoading) {
@@ -82,6 +99,7 @@ export default function AnimeSearch() {
     const inputValue = e.target.value;
     setIsDirty(inputValue !== "");
     setQuery(inputValue);
+    setScrollPosition(0);
   };
 
   const renderResults = () => {
@@ -96,6 +114,9 @@ export default function AnimeSearch() {
 
     return (
       <Virtuoso
+        ref={virtuosoRef}
+        initialScrollTop={scrollPosition}
+        onScroll={(e: any) => handleScrollPositionChange(e.target.scrollTop)}
         data={animeData}
         endReached={loadMore}
         style={{ height: "15rem" }}
@@ -103,29 +124,7 @@ export default function AnimeSearch() {
         fixedItemHeight={64}
         itemContent={(index) => {
           const item = animeData[index];
-          return (
-            <li
-              key={item.mal_id}
-              className="group h-16 relative cursor-pointer select-none py-2 px-4 text-slate-700 hover:bg-indigo-600 hover:text-white"
-            >
-              <Link href={`/anime/${item.mal_id}`}>
-                <div className="grid grid-cols-search-input w-full h-full gap-2 items-center">
-                  <Image
-                    src={item.images.jpg.image_url}
-                    alt={item.title}
-                    height={30}
-                    width={30}
-                  />
-                  <div className="flex flex-grow  items-center justify-between">
-                    <span>{item.title}</span>
-                    <span className="hidden group-hover:block">
-                      View Details
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            </li>
-          );
+          return <SearchOption item={item} />;
         }}
       />
     );
@@ -161,10 +160,10 @@ export default function AnimeSearch() {
               }
             />
             {isLoading && (
-              <ArrowPathIcon className="absolute top-1/3 right-2 animate-spin flex items-center h-5 w-5 text-slate-500" />
+              <ArrowPathIcon className="absolute top-1/3 right-2 animate-spin flex items-center h-5 w-5 text-slate-700" />
             )}
           </div>
-          {query.length >= 3 && (
+          {query.length >= 3 && isFocused && (
             <SearchDropdown>{renderResults()}</SearchDropdown>
           )}
         </div>
