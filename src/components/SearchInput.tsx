@@ -49,7 +49,6 @@ export default function AnimeSearch() {
 
   useEffect(() => {
     if (data) {
-      console.log({ data });
       setAnimeData(data.data);
       setPageData(data.pagination);
     }
