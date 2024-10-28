@@ -1,6 +1,16 @@
+"use client";
+
 import React from "react";
 
 const BlurredSvg = () => {
+  const browserName = navigator.userAgent.toLowerCase().includes("firefox")
+    ? "Firefox"
+    : "Other";
+
+  if (browserName === "Firefox") {
+    return null;
+  }
+
   return (
     <svg
       id="visual"
