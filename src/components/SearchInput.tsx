@@ -121,7 +121,7 @@ export default function AnimeSearch() {
         endReached={loadMore}
         style={{ height: "15rem" }}
         increaseViewportBy={12}
-        fixedItemHeight={64}
+        fixedItemHeight={80}
         itemContent={(index) => {
           const item = animeData[index];
           return <SearchOption item={item} />;
