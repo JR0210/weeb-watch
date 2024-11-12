@@ -1,4 +1,5 @@
 import SearchInput from "../components/SearchInput";
+import QueryClientWrapper from "@/components/QueryClientWrapper";
 
 const videos = ["/WeebWatch.mp4", "/WeebWatch2.mp4"];
 
@@ -18,7 +19,9 @@ export default function Home() {
           Weeb<span className="text-[#E63946]">.</span>watch
         </h1>
         <div>
-          <SearchInput />
+          <QueryClientWrapper>
+            <SearchInput />
+          </QueryClientWrapper>
         </div>
       </div>
 
