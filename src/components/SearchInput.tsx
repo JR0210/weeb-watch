@@ -20,6 +20,12 @@ type FetchProps = {
   error: boolean;
 };
 
+function determineDropdownHeight(dataCount: number) {
+  const height = dataCount * 80;
+  if (dataCount > 3) return "15rem";
+  return `${height}px`;
+}
+
 const SearchDropdown = ({ children }: { children: React.ReactNode }) => (
   <ul className="absolute z-10 mt-1 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
     {children}
@@ -119,7 +125,7 @@ export default function AnimeSearch() {
         onScroll={(e: any) => handleScrollPositionChange(e.target.scrollTop)}
         data={animeData}
         endReached={loadMore}
-        style={{ height: "15rem" }}
+        style={{ height: determineDropdownHeight(animeData.length) }}
         increaseViewportBy={12}
         fixedItemHeight={80}
         itemContent={(index) => {
