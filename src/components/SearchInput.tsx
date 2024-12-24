@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 import { Input } from "@headlessui/react";
 import { ArrowPathIcon } from "@heroicons/react/24/outline";
@@ -8,6 +8,7 @@ import { ArrowPathIcon } from "@heroicons/react/24/outline";
 import { useInfiniteQuery } from "@tanstack/react-query";
 
 import SearchOption from "./SearchOption";
+import { fail } from "assert";
 
 function determineDropdownHeight(dataCount: number) {
   const height = dataCount * 80;
@@ -24,27 +25,64 @@ const SearchDropdown = ({ children }: { children: React.ReactNode }) => (
 export default function AnimeSearch() {
   const virtuosoRef = useRef<VirtuosoHandle | null>(null);
   const [query, setQuery] = useState<string>("");
+  const [debouncedQuery, setDebouncedQuery] = useState(query);
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const [isDirty, setIsDirty] = useState<boolean>(false);
   const [scrollPosition, setScrollPosition] = useState<number>(0);
 
-  const fetchAnime = async ({ pageParam = 1 }) => {
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 100); // Adjust the delay as needed
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [query]);
+
+  const fetchAnime = async ({
+    pageParam = 1,
+    signal,
+  }: {
+    pageParam?: number;
+    signal: AbortSignal;
+  }) => {
     const res = await fetch(
-      `/api/anime-search?q=${encodeURIComponent(query)}&page=${pageParam}&sfw`
+      `/api/anime-search?q=${encodeURIComponent(query)}&page=${pageParam}&sfw`,
+      { signal }
     );
-    return res.json();
+    const data = await res.json();
+
+    if (data.status === "429") {
+      const error = new Error(data.message);
+      error.name = "RateLimitException";
+      throw error;
+    }
+
+    if (!data || !res.ok) {
+      return { data: [], pagination: { has_next_page: false } };
+    }
+
+    return data;
   };
 
   const { data, isLoading, isError, fetchNextPage, hasNextPage } =
     useInfiniteQuery({
-      queryKey: ["animeSearch", query],
+      queryKey: ["animeSearch", debouncedQuery],
       queryFn: fetchAnime,
-      enabled: query.length >= 3,
+      enabled: debouncedQuery.length >= 3,
       getNextPageParam: (lastPage) =>
-        lastPage.pagination.has_next_page
-          ? lastPage.pagination.current_page + 1
+        lastPage?.pagination?.has_next_page
+          ? lastPage.pagination?.current_page + 1
           : undefined,
       initialPageParam: 1,
+      retry: (failureCount, error) => {
+        if (error.name === "RateLimitException") {
+          return failureCount < 3;
+        }
+        return false;
+      },
+      retryDelay: (failureCount) => Math.min(failureCount * 300, 2000),
     });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
