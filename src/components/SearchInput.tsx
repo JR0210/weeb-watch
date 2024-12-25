@@ -4,11 +4,9 @@ import React, { useState, useRef, useEffect } from "react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 import { Input } from "@headlessui/react";
 import { ArrowPathIcon } from "@heroicons/react/24/outline";
-
 import { useInfiniteQuery } from "@tanstack/react-query";
 
 import SearchOption from "./SearchOption";
-import { fail } from "assert";
 
 function determineDropdownHeight(dataCount: number) {
   const height = dataCount * 80;
@@ -24,6 +22,7 @@ const SearchDropdown = ({ children }: { children: React.ReactNode }) => (
 
 export default function AnimeSearch() {
   const virtuosoRef = useRef<VirtuosoHandle | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const [query, setQuery] = useState<string>("");
   const [debouncedQuery, setDebouncedQuery] = useState(query);
   const [isFocused, setIsFocused] = useState<boolean>(false);
@@ -33,22 +32,32 @@ export default function AnimeSearch() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedQuery(query);
-    }, 100); // Adjust the delay as needed
+    }, 400);
 
     return () => {
       clearTimeout(handler);
     };
   }, [query]);
 
-  const fetchAnime = async ({
-    pageParam = 1,
-    signal,
-  }: {
-    pageParam?: number;
-    signal: AbortSignal;
-  }) => {
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  const fetchAnime = async ({ pageParam = 1 }: { pageParam?: number }) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     const res = await fetch(
-      `/api/anime-search?q=${encodeURIComponent(query)}&page=${pageParam}&sfw`,
+      `/api/anime-search?q=${encodeURIComponent(
+        debouncedQuery
+      )}&page=${pageParam}&sfw`,
       { signal }
     );
     const data = await res.json();
@@ -82,7 +91,7 @@ export default function AnimeSearch() {
         }
         return false;
       },
-      retryDelay: (failureCount) => Math.min(failureCount * 300, 2000),
+      retryDelay: (failureCount) => Math.min(failureCount * 400, 2000),
     });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
