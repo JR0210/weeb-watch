@@ -122,7 +122,9 @@ export default function AnimeSearch() {
         style={{ height: determineDropdownHeight(animeData.length) }}
         increaseViewportBy={12}
         fixedItemHeight={80}
-        itemContent={(index) => <SearchOption item={animeData[index]} />}
+        itemContent={(index) => (
+          <SearchOption item={animeData[index]} query={query} />
+        )}
       />
     );
   };

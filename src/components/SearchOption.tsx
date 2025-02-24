@@ -3,7 +3,32 @@ import Link from "next/link";
 
 import { AnimeData } from "../types/global";
 
-export default function SearchOption({ item }: { item: AnimeData }) {
+const genericTitleClasses =
+  "transition-all truncate overflow-hidden text-ellipsis whitespace-nowrap max-w-full";
+
+const nonMatchingClasses =
+  "font-[400] text-slate-500 group-hover:text-slate-300";
+
+export default function SearchOption({
+  item,
+  query,
+}: {
+  item: AnimeData;
+  query: string;
+}) {
+  // Get all possible titles, filter out empty strings and duplicates
+  const titlesArr = [
+    item.title,
+    item.title_english,
+    item.title_japanese,
+  ].filter((title) => title);
+  const titles = [...new Set(titlesArr)];
+
+  // Find which title substring matches the query
+  const matchedTitle = titles.find((title) =>
+    title.toLowerCase().includes(query.toLowerCase())
+  );
+
   return (
     <li
       key={item.mal_id}
@@ -20,29 +45,17 @@ export default function SearchOption({ item }: { item: AnimeData }) {
           <div className="flex flex-grow items-center justify-between overflow-hidden">
             {/* Container for the titles */}
             <div className="flex flex-col w-full overflow-hidden">
-              {/* Main title with ellipsis and tooltip */}
-              <span
-                className="font-bold truncate overflow-hidden text-ellipsis whitespace-nowrap max-w-full"
-                title={item.title}
-              >
-                {item.title}
-              </span>
-              {item.title_english && item.title !== item.title_english && (
+              {titles.map((title: string) => (
                 <span
-                  className="text-sm text-slate-500 group-hover:text-slate-300 truncate overflow-hidden text-ellipsis whitespace-nowrap max-w-full"
-                  title={item.title_english}
+                  key={title}
+                  className={`${
+                    title === matchedTitle ? "font-[700]" : nonMatchingClasses
+                  } ${genericTitleClasses}`}
+                  title={title}
                 >
-                  {item.title_english}
+                  {title}
                 </span>
-              )}
-              {item.title_japanese && item.title !== item.title_japanese && (
-                <span
-                  className="text-sm text-slate-500 group-hover:text-slate-300 truncate overflow-hidden text-ellipsis whitespace-nowrap max-w-full"
-                  title={item.title_japanese}
-                >
-                  {item.title_japanese}
-                </span>
-              )}
+              ))}
             </div>
             {/* View Details button */}
             <span className="hidden group-hover:block whitespace-nowrap">
